@@ -1,0 +1,116 @@
+https://www.kaggle.com/c/titanic/data
+
+*** Overview ***
+The data has been split into two groups:
+
+training set (train.csv)
+test set (test.csv)
+The training set should be used to build your machine learning models.
+For the training set, we provide the outcome (also known as the “ground truth”) for each passenger.
+Your model will be based on “features” like passengers’ gender and class.
+You can also use feature engineering to create new features.
+
+The test set should be used to see how well your model performs on unseen data.
+For the test set, we do not provide the ground truth for each passenger. It is your job to predict these outcomes.
+For each passenger in the test set, use the model you trained to predict whether or not they survived the sinking of the Titanic.
+
+We also include gender_submission.csv, a set of predictions that assume all and only female passengers survive, as an example of what a submission file should look like.
+
+
+*** Data Dictionary ***
+Variable        Definition                      Key
+survival        Survival                        0 = No, 1 = Yes
+pclass          Ticket class                    1 = 1st, 2 = 2nd, 3 = 3rd
+sex             Sex
+Age             Age in years
+sibsp           # of siblings / spouses
+                aboard the Titanic
+parch           # of parents / children
+                aboard the Titanic
+ticket          Ticket number
+fare            Passenger fare
+cabin           Cabin number
+embarked        Port of Embarkation             C = Cherbourg, Q = Queenstown, S = Southampton
+
+
+*** Variable Notes ***
+pclass: A proxy for socio-economic status (SES)
+1st = Upper
+2nd = Middle
+3rd = Lower
+
+age: Age is fractional if less than 1. If the age is estimated, is it in the form of xx.5
+
+sibsp: The dataset defines family relations in this way...
+Sibling = brother, sister, stepbrother, stepsister
+Spouse = husband, wife (mistresses and fiancés were ignored)
+
+parch: The dataset defines family relations in this way...
+Parent = mother, father
+Child = daughter, son, stepdaughter, stepson
+Some children travelled only with a nanny, therefore parch=0 for them.
+
+
+*** 데이터 분류하기 ***
+컬럼 (column) = 변수 (variable) = 피처 (feature)
+DF의 피처 하나 = 딕셔너리 {'': []}
+'Survived' → label (레이블 : 분석으로 나온 결괏값, 정답)
+'Pclass' : 객실 등급 (승객의 사회적, 경제적 지위) → ordinal : 1.5와 같은 구간이 없고 1, 2, 3으로 딱 나누어져 있음 + 순서 존재
+'Name' : 이름 → nominal : 계급장이 높을수록 생존율이 높음. 계급장에 따라 생존율이 달라지므로 Rev. , Mrs. 와 같은 계급장만 추출할 예정. 이름 앞에 계급장이 없으면 불필요한 데이터임 (이름이 '최은아'라고 해서 생존율이 높아질 리 없다.)
+'Sex' : 성별 → nominal
+'Age' : 나이 → ratio : 나이가 구간대별로 정리되어 있음
+'SibSp' : 동반한 Sibling(형제자매)와 Spouse(배우자)의 수 → garbage
+'Parch' : 동반한 Parent(부모)와 Child(자식)의 수 → garbage
+'Ticket' : 티켓의 고유 넘버 → garbage : 랜덤
+'Fare' : 티켓의 요금 → ratio : 요금이 비쌀수록 생존율이 높음
+'Cabin' : 객실 번호 → garbage : Pclass가 있으므로 필요 없음
+'Embarked' : 승선한 항 → nominal : 부자가 많이 타는 항구와 노동자가 많이 타는 항구가 정해져있음. 부자의 생존율이 더 높음
+
+
+*** 경연 대회 참가 시 ***
+1. DF 생성
+2. column 추출
+
+# template
+1. 데이터 시각화 → feature별로 차트 그리는 메소드를 visualize()와 동급인 메소드로 생성
+2. visualize() 메소드 생성 → hook (템플릿 메소드 패턴)
+    * visualize() 에서 조립, 단일 알고리즘을 갖지 않음 *
+    * entity : 원 데이터의 상태, 차트를 그리는 것은 가공 전에 실행 → 상관관계 파악 *
+    1) 1에서 만든 메소드 호출
+
+# model
+1. 필요 없는 feature 버리기 (drop_feature() 메소드)
+2. 4가지 데이터 측정 척도에 따라 feature 분류 (scaling) : nominal, ordinal, interval, ratio → preprocess()와 동급인 메소드로 생성
+    * interval 또는 ratio로 분류했다면 pd.cut / pd.qcut을 이용하여 scale을 분류하고 (bins 지정 및 null 값 처리), scale별 명칭을 지정 (labels) *
+        null 값은 실제값과 매칭되지 않도록 상상 속의 값을 넣어서 처리 → fillna
+        interval : bins가 -np.inf부터 시작
+        ratio : bins가 -1부터 시작 (음수값 허용 X / -1과 0 사이는 unknown, null 값)
+        ratio > interval > ordinal > nominal 순으로 정확도가 높음
+    * Name의 경우 데이터에서 signal 추출 *
+    * mapping : 자연어로 되어있는 데이터를 전부 기계어로 변환 → model *
+3. preprocess() 메소드 생성 → hook (템플릿 메소드 패턴)
+    * preprocess() 에서 조립, 단일 알고리즘을 갖지 않음 *
+    1) train, test, id, label 만들기
+        데이터셋은 Train, Test, Validation 3종류로 나뉨
+        Validation은 id(문제)와 label(정답)으로 구성됨
+        train과 test는 DF(object), id와 label은 Series
+    2) label(정답) 제거
+    3) 2에서 만든 메소드 순서 지정 후 호출
+    4) 1 호출
+
+    '''
+    # four data measurement scales
+    Categorical vs. Continuous
+    Cate → nominal (이름) vs. ordinal (순서)
+    Cont → interval (음수값 허용) vs. ratio (음수값 허용 X)
+    '''
+
+# model 선택 → ML의 성능 평가는 sklearn으로 함
+Classifier : 분류기 (생존자 / 사망자)
+
+
+*** titanic은 지도 학습 ***
+Machine Learning : 자연어 → 기계어
+지도 학습은 label 필요 → mapping 해야 함 (cf. 비지도 학습은 original 값)
+mapping : 디스크와 메모리가 값을 서로 주고 받는 것, 개체값(실제 데이터값) 에서 객체값(가상값)으로 변환 (자연어로 되어있는 데이터를 전부 기계어로 변환)
+mapping 하면 연속값이 이산값이 되고, model이 됨
