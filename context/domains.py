@@ -102,7 +102,7 @@ class ReaderBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def xls(self, file, header, cols) -> object:
+    def xls(self, file, header, cols, skiprow) -> object:
         pass
 
     @abstractmethod
@@ -121,19 +121,21 @@ class Reader(ReaderBase):
     def new_file(self, file) -> str:
         return file.context + file.fname  # file.context는 나중에 클라우드에 올리면 발급됨
 
-    def csv(self, file) -> object:
+    def csv(self, file) -> object:  # pandas에서 object는 데이터프레임
         return pd.read_csv(f'{self.new_file(file)}.csv', encoding='UTF-8', thousands=',')
 
-    def xls(self, file, header, cols) -> object:
-        return pd.read_excel(f'{self.new_file(file)}.xls', header=header, usecols=cols)
+    def xls(self, file, header, cols, skiprow) -> object:
+        return pd.read_excel(f'{self.new_file(file)}.xls', header=header, usecols=cols, skiprows=[skiprow])
 
     def json(self, file) -> object:
         return pd.read_json(f'{self.new_file(file)}.json', encoding='UTF-8')
 
-    def gmaps(self) -> object:
+    @staticmethod
+    def gmaps() -> googlemaps.Client:
         return googlemaps.Client(key='')
 
-    def print(self, this):
+    @staticmethod
+    def print(this):
         print('*' * 100)
         print(f'1. Target type\n {type(this)}')
         print(f'2. Target column\n {this.columns}')
