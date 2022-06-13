@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from abc import *
 import pandas as pd
 import googlemaps
+from typing import TypeVar
+PandasDataFrame = TypeVar('pandas.core.frame.DataFrame')
+GooglemapsClient = TypeVar('googlemaps.Client')
 
 # 중복 데이터
 # 공용 설정값
@@ -121,17 +124,21 @@ class Reader(ReaderBase):
     def new_file(self, file) -> str:
         return file.context + file.fname  # file.context는 나중에 클라우드에 올리면 발급됨
 
-    def csv(self, file) -> object:  # pandas에서 object는 데이터프레임
-        return pd.read_csv(f'{self.new_file(file)}.csv', encoding='UTF-8', thousands=',')
+    def csv(self, file) -> PandasDataFrame:  # pandas에서 object는 데이터프레임
+        csv = pd.read_csv(f'{self.new_file(file)}.csv', encoding='UTF-8', thousands=',')
+        print(f'type: {type(csv)}')
+        return csv
 
-    def xls(self, file, header, cols, skiprow) -> object:
-        return pd.read_excel(f'{self.new_file(file)}.xls', header=header, usecols=cols, skiprows=[skiprow])
+    def xls(self, file, header, cols, skiprow) -> PandasDataFrame:
+        xls = pd.read_excel(f'{self.new_file(file)}.xls', header=header, usecols=cols, skiprows=[skiprow])
+        print(f'type: {type(xls)}')
+        return xls
 
-    def json(self, file) -> object:
+    def json(self, file) -> PandasDataFrame:
         return pd.read_json(f'{self.new_file(file)}.json', encoding='UTF-8')
 
     @staticmethod
-    def gmaps() -> googlemaps.Client:
+    def gmaps() -> GooglemapsClient:
         return googlemaps.Client(key='')
 
     @staticmethod
