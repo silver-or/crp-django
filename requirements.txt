@@ -15,12 +15,12 @@ Jinja2==2.11.2
 JPype1
 jsonify==0.5
 jupyter==1.0.0
-konlpy==0.5.2
+konlpy==0.6.0
 lxml
 MarkupSafe==1.1.1
 mccabe
 mysql-connector
-nltk
+nltk~=3.7
 numpy~=1.19.5
 pandas~=1.4.2
 pandas-datareader==0.9.0
@@ -45,3 +45,4 @@ django~=4.0.5
 scikit-learn~=1.1.1
 matplotlib~=3.5.1
 scipy~=1.7.3
+wordcloud~=1.8.1

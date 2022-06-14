@@ -199,7 +199,7 @@ class Solution(Reader):
         }, inplace=True)
         print(police)
         x = police[self.crime_rate_columns].values
-        min_max_scaler = preprocessing.MinMaxScaler()
+        min_max_scalar = preprocessing.MinMaxScaler()
         # print(police)
         '''
         피쳐 스케일링(Feature scalining)은 해당 피쳐들의 값을 일정한 수준으로 맞춰주는 것이다.
@@ -217,7 +217,7 @@ class Solution(Reader):
             스케일은 데이터의 분포이다.
             목적은 도메인을 일치시키거나 스케일을 유사하게 만든다.     
         '''
-        x_scaled = min_max_scaler.fit_transform(x.astype(float))
+        x_scaled = min_max_scalar.fit_transform(x.astype(float))
         police_norm = pd.DataFrame(x_scaled, columns=self.crime_columns, index=police.index)
         police_norm[self.crime_rate_columns] = police[self.crime_rate_columns]
         police_norm['범죄'] = np.sum(police_norm[self.crime_rate_columns], axis=1)
