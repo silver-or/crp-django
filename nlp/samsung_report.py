@@ -26,10 +26,17 @@ from context.domains import Reader, File
 형태소(形態素, 영어: morpheme)는 언어학에서 의미가 있는 가장 작은 말의 단위이다. → atom
 말뭉치(영어: corpus 코퍼스)는 언어학에서 주로 구조를 이루고 있는 텍스트 집합이다.
 
-** atom = 토큰 (동적)
+** atom = 토큰 (동적), atom은 scalar부터 시작한다.
+** 용어 정리
+    코퍼스 : 토큰 단위로 분할. 텍스트의 집합. 구조는 집합이다. 집합은 최소 vector부터 시작한다. → 코퍼스가 텍스트보다 더 큰 개념 
+    토큰 : 분할하는 단위.
+    텍스트 : word 또는 sentence (word : 띄어쓰기, sentence : 마침표), 비정형 데이터
+    형태소 : 의미있는 가장 작은 word
 
-1. Preprocessing : kr-Report_2018.txt 를 읽는다.
-2. Tokenization
+1. Preprocessing : kr-Report_2018.txt 를 읽는다. → 객체화
+2. Tokenization : 문자열 (string)을 디치원 벡터 (vector)로 변환
+    (char : scalar, string : vector) 1차원인 vector부터 객체이므로 객체는 차원을 가진다.
+    0차원 (ㄱ, ㄴ, ㄷ ...) 은 prime (원시 타입)
 3. Token Embedding
 4. Document Embedding
 '''

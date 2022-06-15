@@ -135,6 +135,10 @@ class Reader(ReaderBase):
         print(f'type: {type(xls)}')
         return xls
 
+    def xlsx(self, file, header) -> PandasDataFrame:
+        xlsx = pd.read_excel(f'{self.new_file(file)}.xlsx', header=header)
+        return xlsx
+
     def json(self, file) -> PandasDataFrame:
         return pd.read_json(f'{self.new_file(file)}.json', encoding='UTF-8')
 
