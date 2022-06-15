@@ -28,10 +28,13 @@ from context.domains import Reader, File
 
 ** atom = 토큰 (동적), atom은 scalar부터 시작한다.
 ** 용어 정리
-    코퍼스 : 토큰 단위로 분할. 텍스트의 집합. 구조는 집합이다. 집합은 최소 vector부터 시작한다. → 코퍼스가 텍스트보다 더 큰 개념 
+    코퍼스 : 말뭉치, 대화, 언어, 원초적인 상태, 비정형 데이터 
+            텍스트의 집합. 구조는 집합이다. 집합은 최소 vector부터 시작한다. → 코퍼스가 텍스트보다 더 큰 개념 (소리까지 포함)
+    텍스트 : word 또는 sentence (word : 띄어쓰기, sentence : 마침표), 국어사전에 등재 (코퍼스에서 음성 및 무의미한 글자 제거)
+    ※ 코퍼스(말)에서 키워드 추출 (불필요한 단어 제거) → 코퍼스를 형태소로 분석
     토큰 : 분할하는 단위.
-    텍스트 : word 또는 sentence (word : 띄어쓰기, sentence : 마침표), 비정형 데이터
-    형태소 : 의미있는 가장 작은 word
+    워드 : 스페이스바 또는 엔터로 나누어져 있음. 형태소가 결합된 상태 (아침에)
+    형태소 : 의미가 있는 워드. 실질 형태소를 의미. (아침 : 실질형태소, 에 : 형식 형태소)
 
 1. Preprocessing : kr-Report_2018.txt 를 읽는다. → 객체화
 2. Tokenization : 문자열 (string)을 디치원 벡터 (vector)로 변환
@@ -39,6 +42,11 @@ from context.domains import Reader, File
     0차원 (ㄱ, ㄴ, ㄷ ...) 은 prime (원시 타입)
 3. Token Embedding
 4. Document Embedding
+
+** 임베딩(embedding) / 리프레젠테이션 (representation)
+    자연어(코퍼스)에서 텍스트를 추출한다.
+    텍스트를 토큰화해서 단어로 만든다.
+    단어를 리스트에 담아 벡터화시키는 일련의 과정을 임베딩이라고 한다.
 '''
 
 
@@ -50,13 +58,11 @@ class Solution(Reader):
     def hook(self):
         def print_menu():
             print('0. Exit')
-            print('1. kr-Report_2018.txt 를 읽으시오')
-            print('2. Tokenization')
-            print('3. Token Embedding')
-            print('4. Document Embedding')
+            print('1. nltk 다운로드')
+            print('2. Preprocessing')
+            print('3. Tokenization')
+            print('4. Token Embedding')
             print('5. 2018년 삼성사업계획서를 분석해서 워드클라우드를 작성하시오.')
-            print('6. stopwords.txt 를 읽으시오.')
-            print('7. tokens에서 stopwords에 있는 단어를 제거하시오.')
             return input('메뉴 선택 \n')
 
         while 1:
@@ -64,19 +70,15 @@ class Solution(Reader):
             if menu == '0':
                 break
             elif menu == '1':
-                self.preprocessing()
+                self.download()
             elif menu == '2':
-                self.tokenization()
+                self.preprocessing()
             elif menu == '3':
-                self.token_embedding()
+                self.tokenization()
             elif menu == '4':
-                self.document_embedding()
+                self.token_embedding()
             elif menu == '5':
                 self.draw_wordcloud()
-            elif menu == '6':
-                self.read_stopword()
-            elif menu == '7':
-                self.remove_stopword()
 
     def preprocessing(self):
         self.okt.pos("삼성전자 글로벌센터 전자사업부", stem=True)
@@ -87,10 +89,8 @@ class Solution(Reader):
             texts = f.read()
         texts = texts.replace('\n', ' ')
         tokenizer = re.compile(r'[^ㄱ-힣]+')  # 한글만 빼고 모두 날림  # 정규식 표현 (r) cf. formatter (f) : 반드시 {} 존재
+        # ic(tokenizer.sub(' ', texts))
         return tokenizer.sub(' ', texts)
-
-    def read_file(self):
-        pass
 
     def tokenization(self):
         noun_tokens = []
@@ -114,17 +114,22 @@ class Solution(Reader):
             texts = f.read()
         return texts
 
-    def remove_stopword(self):
-        tokens = word_tokenize(self.tokenization())
+    def token_embedding(self) -> []:
+        tokens = self.tokenization()
         stopwords = word_tokenize(self.read_stopword())
-        texts = [i for i in tokens if i not in stopwords]
-        ic(texts)
+        texts = [text for text in tokens if text not in stopwords]
+        return texts
 
-    def token_embedding(self):
-        pass
-
-    def document_embedding(self):
-        pass
+    def draw_wordcloud(self):
+        _ = self.token_embedding()  # _ : 로컬에서만 사용하는 변수, 임시값, self 걸면 안 됨
+        freqtxt = pd.Series(dict(FreqDist(_))).sort_values(ascending=False)  # 해당 단어가 얼마나 자주 나왔는지 판단  # 0, 1, 2 가 아닌 큰 수부터 밑으로 떨어짐
+        ic(freqtxt)
+        wcloud = WordCloud('./data/D2Coding.ttf', relative_scaling=0.2,
+                           background_color='white').generate(" ".join(_))
+        plt.figure(figsize=(12, 12))
+        plt.imshow(wcloud, interpolation='bilinear')
+        plt.axis('off')
+        plt.show()
 
     @staticmethod
     def download():
