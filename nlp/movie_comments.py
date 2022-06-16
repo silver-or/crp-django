@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import math
 import re
-import jpype
 from collections import Counter
 from konlpy.tag import Okt
 from icecream import ic
@@ -12,13 +11,13 @@ from icecream import ic
 # %matplotlib inline #-- matplotlib를 통해 이미지를 바로 볼 수 있도록 설정
 import matplotlib.pyplot as plt
 
-#-- 한글 폰트 사용 설정
+# 한글 폰트 사용 설정
 from matplotlib import font_manager, rc
 font_path = "C:/Windows/Fonts/malgunsl.ttf"
 font = font_manager.FontProperties(fname=font_path).get_name()
 rc('font', family=font)
 
-#-- 그래프 마이너스 기호 표시 설정
+# 그래프 마이너스 기호 표시 설정
 import matplotlib
 matplotlib.rcParams['axes.unicode_minus'] = False
 
@@ -34,10 +33,11 @@ class Solution(Reader):
     def hook(self):
         def print_menu():
             print('0. Exit')
-            print('1. 텍스트 마이닝 (크롤링)')
+            print('1. 전처리 : 텍스트 마이닝 (크롤링)')
             print('2. DF 정형화')  # 1, 2를 합치면 preprocess
             print('3. 토큰화')
             print('4. 임베딩')
+
             print('5. 긍정 리뷰의 상위 20개 형태소를 시각화하시오.')
             print('6. 부정 리뷰의 상위 20개 형태소를 시각화하시오.')
             return input('메뉴 선택 \n')
@@ -63,8 +63,18 @@ class Solution(Reader):
 
     def preprocessing(self):  # 파일 읽기 (크롤링)
         self.stereotype()
-        ic(self.movie_comments.head(5))
-        ic(self.movie_comments)
+        df = self.movie_comments
+        # ic(df.head(5))
+        # 코멘트가 없는 리뷰 데이터(NaN) 제거
+        df = df.dropna()
+        # 중복 리뷰 제거
+        df = df.drop_duplicates(['comment'])
+        # self.reviews_info(df)
+        # 긍정, 부정 리뷰 수
+        df.label.value_counts()
+        top10 = self.top10_movies(df)
+        avg_score = self.get_avg_score(top10)
+        self.visualization(avg_score, top10)
 
     def crawling(self):
         file = self.file
@@ -83,11 +93,11 @@ class Solution(Reader):
                 score = rev.select_one('div.list_netizen_score > em').text.strip()
                 comment = rev.select_one('br').next_sibling.strip()
 
-                # -- 긍정/부정 리뷰 레이블 설정
+                # 긍정/부정 리뷰 레이블 설정
                 if int(score) >= 8:
-                    label = 1  # -- 긍정 리뷰 (8~10점)
+                    label = 1  # 긍정 리뷰 (8~10점)
                 elif int(score) <= 4:
-                    label = 0  # -- 부정 리뷰 (0~4점)
+                    label = 0  # 부정 리뷰 (0~4점)
                 else:
                     label = 2
 
@@ -99,6 +109,87 @@ class Solution(Reader):
         file.fname = 'movie_reviews.txt'
         path = self.new_file(file)
         self.movie_comments = pd.read_csv(path, delimiter='\t', names=['title', 'score', 'comment', 'label'])
+
+    @staticmethod
+    def reviews_info(df):
+        # 영화 리스트 확인
+        movie_lst = df.title.unique()
+        ic('전체 영화 편수 : ', len(movie_lst))
+        ic(movie_lst[:10])
+        # 각 영화 리뷰 수 계산
+        cnt_movie = df.title.value_counts()
+        ic(cnt_movie[:20])
+        # 각 영화 평점 분석
+        info_movie = df.groupby('title')['score'].describe()
+        ic(info_movie.sort_values(by=['count'], axis=0, ascending=False))
+
+    @staticmethod
+    def top10_movies(df):
+        top10 = df.title.value_counts().sort_values(ascending=False)[:10]
+        top10_title = top10.index.tolist()
+        return df[df['title'].isin(top10_title)]
+
+    @staticmethod
+    def get_avg_score(top10):
+        movie_title = top10.title.unique().tolist()  # -- 영화 제목 추출
+        avg_score = {}  # -- {제목 : 평균} 저장
+        for t in movie_title:
+            avg = top10[top10['title'] == t]['score'].mean()
+            avg_score[t] = avg
+        return avg_score
+
+    def visualization(self, avg_score, top10):
+        plt.figure(figsize=(10, 5))
+        plt.title('영화 평균 평점 (top 10: 리뷰 수)\n', fontsize=17)
+        plt.xlabel('영화 제목')
+        plt.ylabel('평균 평점')
+        plt.xticks(rotation=20)
+
+        for x, y in avg_score.items():
+            color = np.array_str(np.where(y == max(avg_score.values()), 'orange', 'lightgrey'))
+            plt.bar(x, y, color=color)
+            plt.text(x, y, '%.2f' % y,
+                     horizontalalignment='center',
+                     verticalalignment='bottom')
+
+        # plt.show()
+        # self.rating_distribution(avg_score, top10)
+        self.circle_chart(avg_score, top10)
+
+    @staticmethod
+    def rating_distribution(avg_score, top10):
+        fig, axs = plt.subplots(5, 2, figsize=(15, 25))
+        axs = axs.flatten()
+
+        for title, avg, ax in zip(avg_score.keys(), avg_score.values(), axs):
+            num_reviews = len(top10[top10['title'] == title])
+            x = np.arange(num_reviews)
+            y = top10[top10['title'] == title]['score']
+            ax.set_title('\n%s (%d명)' % (title, num_reviews), fontsize=15)
+            ax.set_ylim(0, 10.5, 2)
+            ax.plot(x, y, 'o')
+            ax.axhline(avg, color='red', linestyle='--')  # -- 평균 점선 나타내기
+
+        plt.show()
+
+    @staticmethod
+    def circle_chart(avg_score, top10):
+        fig, axs = plt.subplots(5, 2, figsize=(15, 25))
+        axs = axs.flatten()
+        colors = ['pink', 'gold', 'whitesmoke']
+        labels = ['1 (8~10점)', '0 (1~4점)', '2 (5~7점)']
+
+        for title, ax in zip(avg_score.keys(), axs):
+            num_reviews = len(top10[top10['title'] == title])
+            values = top10[top10['title'] == title]['label'].value_counts()
+            ax.set_title('\n%s (%d명)' % (title, num_reviews), fontsize=15)
+            ax.pie(values,
+                   autopct='%1.1f%%',
+                   colors=colors,
+                   shadow=True,
+                   startangle=90)
+            ax.axis('equal')
+        plt.show()
 
     def tokenization(self):  # (, , ,)
         pass
