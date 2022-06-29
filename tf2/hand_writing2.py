@@ -43,7 +43,7 @@ class Solution(tf.keras.Model):
         # model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
 
         # 모델 학습
-        hist = model.fit(self.train_ds, validation_data=self.val_ds, epochs=10)
+        self.hist = model.fit(self.train_ds, validation_data=self.val_ds, epochs=10)
 
         # 모델 평가
         print('모델 평가')
